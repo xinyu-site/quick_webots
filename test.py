@@ -6,10 +6,13 @@ Created on Mon Jun 27 11:21:52 2022
 """
 
 from ma_envs.envs.point_envs import rendezvous
+
 import torch
 import numpy as np
 from normalization import Normalization
 import torch.nn as nn
+import matplotlib.pyplot as plt
+
 
 class Actor_Gaussian(nn.Module):
     def __init__(self, max_action,hidden_width,state_dim,action_dim):
@@ -27,10 +30,6 @@ class Actor_Gaussian(nn.Module):
         s = self.activate_func(self.fc2(s))
         mean = self.max_action * torch.tanh(self.mean_layer(s))  # [-1,1]->[-max_action,max_action]
         return mean
-
-
-
-
 
 def evaluate_policy( env, agent, state_norm):
     times = 3
@@ -67,20 +66,33 @@ agent_net = Actor_Gaussian(max_action=1.0,hidden_width=128,state_dim=env.observa
 agent_net.load_state_dict(torch.load("agent.pth"))
 
 
-# print(evaluate_policy(env,agent_net,state_norm))
+
+nb_eval_steps = 300
+episodes = 1
+plt.ion()  # 开启交互模式
+plt.subplots()
 
 
-def test_dm(env2):
-    s = env2.reset2()
-    for i in range(5):
-        print(env2.world.agents[i].state.p_pos)
-        print(env2.world.agents[i].state.p_orientation)
-    print(env2.world.distance_matrix)
-    print(env2.world.angle_matrix)
-    print(env2.world.angles_shift)
-    print(env2.world.angles)
+for ep in range(episodes):
+    ob = env.reset()
 
+    print(ob.shape)
+    for t_rollout in range(nb_eval_steps):
+        a = agent_net(ob)
 
+        a=torch.squeeze(a, 0).detach().numpy()
+        ob, r, done, info = env.step(a)
+        ob=torch.tensor(ob, dtype=torch.float32)
+        plt.clf()
+        plt.xlim(0, 200)  # 因为清空了画布，所以要重新设置坐标轴的范围
+        plt.ylim(0, 200)
 
+        for i in range(5):
+            plt.scatter(env.agents[i].state.p_pos[0], env.agents[i].state.p_pos[1])
 
-test_dm(env)
+        plt.pause(0.01)
+        if done or t_rollout == nb_eval_steps - 1:
+            plt.ioff()
+            plt.show()
+
+            break

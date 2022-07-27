@@ -36,7 +36,7 @@ def evaluate_policy(args, env, agent, state_norm):
     return evaluate_reward / times
 
 
-def main(args, env_name, number, seed):
+def main(args,  number, seed):
     env = rendezvous.RendezvousEnv(nr_agents=5,
                                    obs_mode='fix',
                                    comm_radius=200 * np.sqrt(2),
@@ -64,7 +64,7 @@ def main(args, env_name, number, seed):
     args.action_dim = env.action_space.shape[0]
     args.max_action = float(env.action_space.high[0])
     args.max_episode_steps = env.timestep_limit  # Maximum number of steps per episode
-    print("env={}".format(env_name))
+
     print("state_dim={}".format(args.state_dim))
     print("action_dim={}".format(args.action_dim))
     print("max_action={}".format(args.max_action))
@@ -78,7 +78,7 @@ def main(args, env_name, number, seed):
     agent = PPO_continuous(args)
 
     # Build a tensorboard
-    writer = SummaryWriter(log_dir='runs/PPO_continuous/env_{}_{}_number_{}_seed_{}'.format(env_name, args.policy_dist, number, seed))
+
 
     state_norm = Normalization(shape=args.state_dim)  # Trick 2:state normalization
     if args.use_reward_norm:  # Trick 3:reward normalization
@@ -134,15 +134,12 @@ def main(args, env_name, number, seed):
                 evaluate_reward = evaluate_policy(args, env_eval, agent, state_norm)
                 evaluate_rewards.append(evaluate_reward)
                 print("evaluate_num:{} \t evaluate_reward:{} \t".format(evaluate_num, evaluate_reward))
-                writer.add_scalar('step_rewards_{}'.format(env_name), evaluate_rewards[-1][-1].mean(), global_step=total_steps)
-                # Save the rewards
-                if evaluate_num % args.save_freq == 0:
-                    np.save('./data_train/PPO_continuous_{}_env_{}_number_{}_seed_{}.npy'.format(args.policy_dist, env_name, number, seed), np.array(evaluate_rewards))
+
     torch.save(agent.actor.state_dict(), 'agent.pth')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameters Setting for PPO-continuous")
-    parser.add_argument("--max_train_steps", type=int, default=int(1.6e5), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(2e5), help=" Maximum number of training steps")
     parser.add_argument("--evaluate_freq", type=float, default=5e3, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
     parser.add_argument("--policy_dist", type=str, default="Gaussian", help="Beta or Gaussian")
@@ -169,6 +166,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    env_name = ['RendezvousEnv']
-    env_index = 0
-    main(args, env_name=env_name[env_index], number=1, seed=10)
+
+    main(args,  number=1, seed=10)
